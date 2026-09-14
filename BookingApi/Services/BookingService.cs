@@ -1,107 +1,122 @@
-using BookingApi.Infrastructure.Persistence;
-using BookingApi.Interfaces;
-using BookingApi.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
 using BookingApi.DTOs;
+
+using BookingApi.Interfaces;
+using BookingApi.Application.Interfaces;
+using BookingApi.Domain.Entities;
+
 namespace BookingApi.Services;
 
 public class BookingService : IBookingService
 {
-    private readonly BookingDbContext _context;
-    private readonly ILogger<BookingService> _logger;
-    public BookingService(
-        BookingDbContext context,
-        ILogger<BookingService> logger
 
-        )
-    {
-        _context = context;
-        _logger = logger;
-    }
+
+    private readonly IBookingRepository _bookingRepository;
+    private readonly ICustomerRepository _customerRepository;
+    private readonly ILogger<BookingService> _logger;
+    private readonly IUnitOfWork _unitOfWork;
+    public BookingService(
+    IBookingRepository bookingRepository,
+    ICustomerRepository customerRepository,
+    IUnitOfWork unitOfWork,
+    ILogger<BookingService> logger)
+{
+    _bookingRepository = bookingRepository;
+    _customerRepository = customerRepository;
+    _unitOfWork = unitOfWork;
+    _logger = logger;
+}
 
 
     // GET ALL
     public async Task<List<BookingResponseDto>> GetAll()
     {
-        return await _context.Bookings
-        .AsNoTracking()
-        .Select(b => new BookingResponseDto
+        var bookings = await _bookingRepository.GetAllAsync();
+
+        return bookings.Select(b => new BookingResponseDto
         {
             Id = b.Id,
             CustomerName = b.Customer.Name,
             Room = b.Room,
             BookingDate = b.BookingDate,
             IsConfirmed = b.IsConfirmed
-        })
-        .ToListAsync();
+        }).ToList();
     }
 
     // GET BY ID
     public async Task<BookingResponseDto?> GetById(int id, int userId)
     {
-        return await _context.Bookings
-        .Where(b =>
-            b.Id == id &&
-            b.Customer.UserId == userId)
-        .Select(b => new BookingResponseDto
-        {
-            Id = b.Id,
-            CustomerName = b.Customer.Name,
-            Room = b.Room,
-            BookingDate = b.BookingDate,
-            IsConfirmed = b.IsConfirmed
-        })
-        .FirstOrDefaultAsync();
-    }
+        var booking = await _bookingRepository.GetByIdAsync(id);
 
-    // CREATE
-    public async Task<BookingResponseDto?> Create(CreateBookingDto dto,
-     int userId)
-    {
-
-
-        var customer = await _context.Customers
-        .FirstOrDefaultAsync(c => c.UserId == userId);
-
-        if (customer == null)
-        {
-            _logger.LogWarning(
-                "Customer profile was not found for user {UserId}",
-                userId);
-
+        if (booking == null)
             return null;
-        }
 
-        var booking = new Booking
-        {
-            CustomerId = customer.Id,
-            Room = dto.Room,
-            BookingDate = dto.BookingDate,
-            IsConfirmed = dto.IsConfirmed
-        };
-
-        _context.Bookings.Add(booking);
-
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation(
-            "Booking {BookingId} created successfully for customer {CustomerId}",
-            booking.Id,
-            customer.Id);
-
-        var createdBooking = await _context.Bookings
-            .Include(b => b.Customer)
-            .FirstAsync(b => b.Id == booking.Id);
+        if (booking.Customer.UserId != userId)
+            return null;
 
         return new BookingResponseDto
         {
-            Id = createdBooking.Id,
-            CustomerName = createdBooking.Customer.Name,
-            Room = createdBooking.Room,
-            BookingDate = createdBooking.BookingDate,
-            IsConfirmed = createdBooking.IsConfirmed
+            Id = booking.Id,
+            CustomerName = booking.Customer.Name,
+            Room = booking.Room,
+            BookingDate = booking.BookingDate,
+            IsConfirmed = booking.IsConfirmed
         };
     }
+
+    // CREATE
+    public async Task<BookingResponseDto?> Create(
+    CreateBookingDto dto,
+    int userId)
+{
+    // 1. Get customer through repository
+    var customer = await _customerRepository.GetByUserIdAsync(userId);
+
+    if (customer == null)
+    {
+        _logger.LogWarning(
+            "Customer profile was not found for user {UserId}",
+            userId);
+
+        return null;
+    }
+
+    // 2. Business logic: create booking
+    var booking = new Booking
+    {
+        CustomerId = customer.Id,
+        Room = dto.Room,
+        BookingDate = dto.BookingDate,
+        IsConfirmed = dto.IsConfirmed
+    };
+
+    // 3. Tell repository to add it
+    await _bookingRepository.AddAsync(booking);
+
+    // 4. Commit the transaction
+    await _unitOfWork.SaveChangesAsync();
+
+    _logger.LogInformation(
+        "Booking {BookingId} created successfully for customer {CustomerId}",
+        booking.Id,
+        customer.Id);
+
+    // 5. Get the created booking with Customer
+    var createdBooking =
+        await _bookingRepository.GetByIdAsync(booking.Id);
+
+    if (createdBooking == null)
+        return null;
+
+    // 6. Convert entity → DTO
+    return new BookingResponseDto
+    {
+        Id = createdBooking.Id,
+        CustomerName = createdBooking.Customer.Name,
+        Room = createdBooking.Room,
+        BookingDate = createdBooking.BookingDate,
+        IsConfirmed = createdBooking.IsConfirmed
+    };
+}
 
     // UPDATE
     public async Task<BookingResponseDto?> Update(
@@ -110,9 +125,8 @@ public class BookingService : IBookingService
     int userId,
     string role)
     {
-        var booking = await _context.Bookings
-            .Include(b => b.Customer)
-            .FirstOrDefaultAsync(b => b.Id == id);
+        // Get booking through repository
+    var booking = await _bookingRepository.GetByIdAsync(id);
 
         if (booking == null)
             return null;
@@ -127,7 +141,7 @@ public class BookingService : IBookingService
         booking.BookingDate = dto.BookingDate;
         booking.IsConfirmed = dto.IsConfirmed;
 
-        await _context.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         return new BookingResponseDto
         {
@@ -140,26 +154,30 @@ public class BookingService : IBookingService
     }
 
     // DELETE
-    public async Task<bool> Delete(int id, int userId, string role)
+    public async Task<bool> Delete(
+    int id,
+    int userId,
+    string role)
+{
+    // 1. Get booking through repository
+    var booking = await _bookingRepository.GetByIdAsync(id);
+
+    if (booking == null)
+        return false;
+
+    // 2. Business/authorization logic
+    if (role != "Admin" &&
+        booking.Customer.UserId != userId)
     {
-
-        var booking = await _context.Bookings
-        .Include(b => b.Customer)
-        .FirstOrDefaultAsync(b => b.Id == id);
-
-        if (booking == null)
-            return false;
-
-        //admin - delete acces
-        if (role != "Admin" && booking.Customer.UserId != userId)
-        {
-            return false;
-        }
-
-        _context.Bookings.Remove(booking);
-
-        await _context.SaveChangesAsync();
-
-        return true;
+        return false;
     }
+
+    // 3. Tell repository to delete
+    await _bookingRepository.DeleteAsync(booking);
+
+    // 4. Commit the change
+    await _unitOfWork.SaveChangesAsync();
+
+    return true;
+}
 }

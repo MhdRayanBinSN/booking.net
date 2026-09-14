@@ -1,0 +1,20 @@
+## Build results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.userprefs
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# JetBrains Rider
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db

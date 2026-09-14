@@ -1,7 +1,7 @@
 using BookingApi.Interfaces;
 using BookingApi.Services;
 using BookingApi.Infrastructure.Persistence;
-using BookingApi.Models;
+using BookingApi.Domain.Entities;
 using BookingApi.Middleware;
 
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +13,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi;
 
+using BookingApi.Application.Interfaces;
+using BookingApi.Infrastructure.Repositories;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -24,6 +26,11 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
