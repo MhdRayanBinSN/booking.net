@@ -1,6 +1,6 @@
 using BookingApi.Models;
 using BookingApi.DTOs;
-namespace BookingApi.Interfaces;
+namespace BookingApi.Application.Interfaces;
 
 public interface IBookingService
 {

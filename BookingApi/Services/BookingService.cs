@@ -4,8 +4,7 @@ using BookingApi.Interfaces;
 using BookingApi.Application.Interfaces;
 using BookingApi.Domain.Entities;
 
-namespace BookingApi.Services;
-
+using BookingApi.Application.Interfaces;
 public class BookingService : IBookingService
 {
 
