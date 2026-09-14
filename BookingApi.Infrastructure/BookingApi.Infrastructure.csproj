@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\BookingApi.Domain\BookingApi.Domain.csproj" />
-    <ProjectReference Include="..\BookingApi.Application\BookingApi.Application.csproj" />
+    <ProjectReference Include="../BookingApi.Domain/BookingApi.Domain.csproj" />
+    <ProjectReference Include="../BookingApi.Application/BookingApi.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
