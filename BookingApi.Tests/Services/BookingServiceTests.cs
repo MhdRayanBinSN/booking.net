@@ -15,6 +15,7 @@ public class BookingServiceTests
         // Arrange
         var bookingRepository = new Mock<IBookingRepository>();
         var customerRepository = new Mock<ICustomerRepository>();
+        var unitOfWork = new Mock<IUnitOfWork>();
         var logger = new Mock<ILogger<BookingService>>();
 
         var booking = new Booking
@@ -39,6 +40,7 @@ public class BookingServiceTests
         var service = new BookingService(
             bookingRepository.Object,
             customerRepository.Object,
+            unitOfWork.Object,
             logger.Object);
 
         // Act
