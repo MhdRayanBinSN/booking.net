@@ -1,6 +1,6 @@
 using BookingApi.Application.Interfaces;
 using BookingApi.Domain.Entities;
-using BookingApi.DTOs;
+using BookingApi.Application.DTOs;
 using BookingApi.Services;
 using Microsoft.Extensions.Logging;
 using Moq;

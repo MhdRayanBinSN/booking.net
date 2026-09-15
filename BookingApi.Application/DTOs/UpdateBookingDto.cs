@@ -1,4 +1,4 @@
-namespace BookingApi.DTOs;
+namespace BookingApi.Application.DTOs;
 
 public class UpdateBookingDto
 {

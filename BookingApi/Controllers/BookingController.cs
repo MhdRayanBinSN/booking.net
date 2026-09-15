@@ -1,8 +1,8 @@
 using BookingApi.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using BookingApi.Interfaces;
+using BookingApi.Application.Interfaces;
+using BookingApi.Application.DTOs;
 using BookingApi.Services;
-using BookingApi.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 

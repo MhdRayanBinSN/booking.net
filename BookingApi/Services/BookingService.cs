@@ -1,10 +1,7 @@
-using BookingApi.DTOs;
+using BookingApi.Application.DTOs;
 
-using BookingApi.Interfaces;
 using BookingApi.Application.Interfaces;
 using BookingApi.Domain.Entities;
-
-using BookingApi.Application.Interfaces;
 public class BookingService : IBookingService
 {
 

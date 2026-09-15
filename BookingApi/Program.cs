@@ -1,4 +1,3 @@
-using BookingApi.Interfaces;
 using BookingApi.Services;
 using BookingApi.Infrastructure.Persistence;
 using BookingApi.Domain.Entities;
@@ -91,19 +90,23 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
 })
-.AddCookie("GoogleExternal")
-.AddGoogle(options =>
+.AddCookie("GoogleExternal");
+
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+
+if (!string.IsNullOrWhiteSpace(googleClientId) &&
+    !string.IsNullOrWhiteSpace(googleClientSecret))
 {
-    options.ClientId =
-        builder.Configuration["Authentication:Google:ClientId"]!;
-
-    options.ClientSecret =
-        builder.Configuration["Authentication:Google:ClientSecret"]!;
-
-    options.CallbackPath = "/signin-google";
-
-    options.SignInScheme = "GoogleExternal";
-});
+    builder.Services.AddAuthentication()
+        .AddGoogle(options =>
+        {
+            options.ClientId = googleClientId;
+            options.ClientSecret = googleClientSecret;
+            options.CallbackPath = "/signin-google";
+            options.SignInScheme = "GoogleExternal";
+        });
+}
 
 var app = builder.Build();
 
@@ -143,7 +146,10 @@ if (!app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<RequestLoggingMiddleware>();
